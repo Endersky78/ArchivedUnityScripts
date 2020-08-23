@@ -1,0 +1,144 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using MathmaticalFunctions;
+
+public class InitLineRenderer : MonoBehaviour {
+
+    [HideInInspector] bool active;
+    [HideInInspector] bool ugly;
+    LineRenderer Wire;
+
+    public float Angle;
+    public float ArcResolution;
+
+    void Start() {
+        Wire = new LineRenderer();
+        active = false;
+        ugly = false; 
+        Angle = 10;
+        ArcResolution = 20;
+    }
+
+    // Create wire as component and initializes settings for wire if it isn't currently active
+    public void InitWire(GameObject Out) {
+        if(!active && !ugly) {
+            Wire = Out.AddComponent<LineRenderer>();
+            Wire.useWorldSpace = false;
+            Wire.material.color = Color.black;
+            Wire.widthMultiplier = 0.1f;
+            Wire.positionCount = (int)ArcResolution + 2;
+            Wire.numCornerVertices = 90;
+            active = true;
+            ugly = true;
+        }
+    }
+
+    void Update() {
+        if (active) {
+            if(Input.GetMouseButtonUp(0)) {
+                Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+                RaycastHit hit;
+                if(Physics.Raycast(ray, out hit)) {
+                    if(hit.collider != null && hit.transform.tag == "Wire/End") {
+                        FinishLine(this.transform.InverseTransformPoint(hit.transform.position));
+                    } else {
+                        Destroy(Wire);
+                        active = false;
+                        ugly = false;
+                    }
+                }
+            } else {
+                Wire.SetPositions(CalcArcArray(WireEnd(), false));
+                Wire.SetPosition((int)ArcResolution + 1, WireEnd());
+            }
+        }
+    }
+
+    // Finds position of mouse and sets last point on line to that position
+    Vector3 WireEnd() {
+        // Create Point in world
+        Vector3 MousePos = Input.mousePosition;
+        MousePos.z = 10;
+        Vector3 WorldPoint = Camera.main.ScreenToWorldPoint(MousePos);
+        WorldPoint.z = 0;
+
+        // Find offset of object
+        WorldPoint -= Vector3.zero;
+        WorldPoint *= 2;
+
+        return WorldPoint;
+    }
+
+    // Creates Vertexes to make line smooth arc
+    Vector3[] CalcArcArray(Vector3 EndPoint, bool finished) {
+        if(!finished) {
+            Vector3[] ArcArray = new Vector3[(int)ArcResolution + 1];
+            for(int i = 0; i <= ArcResolution; i++) {
+                if(i == 0) {
+                    ArcArray[i] = Vector3.zero;
+                } else {
+                    float t = (float)i / (float)ArcResolution; // Delta X
+                    ArcArray[i] = CalcArcPoint(t, EndPoint); // Wire End is distance because origin is 0,0
+                }
+            }
+            return ArcArray;   
+        } else {
+            Vector3[] ArcArray = new Vector3[(int)ArcResolution + 2];
+            for(int i = 0; i <= ArcResolution + 1; i++) {
+                if(i == 0) {
+                    ArcArray[i] = Vector3.zero;
+                } else {
+                    float t = (float)i / (float)ArcResolution; // Delta X
+                    ArcArray[i] = CalcArcPoint(t, EndPoint); // Wire End is distance because origin is 0,0
+                }
+            }
+            return ArcArray;
+        }
+    }
+
+    Vector3 CalcArcPoint(float t, Vector3 EndPoint) {
+        if(Mathf.Abs(EndPoint.x) / (Mathf.Abs(EndPoint.y) + 2) >= 1.5) {
+            if(EndPoint.y > -1) {
+                Vector3 QuadPoint = VectorStuff.MidPoint(Vector3.zero, EndPoint);
+                QuadPoint = new Vector3(QuadPoint.x, QuadPoint.y + 3, 0);
+                return BezierCurves.CalcBezier(t, Vector3.zero, QuadPoint, EndPoint); // P0 and PN are control points
+            } else {
+                Vector3 QuadPoint = VectorStuff.MidPoint(Vector3.zero, EndPoint);
+                QuadPoint = new Vector3(QuadPoint.x, QuadPoint.y - 3, 0);
+                return BezierCurves.CalcBezier(t, Vector3.zero, QuadPoint, EndPoint); // P0 and PN are control points
+            }
+        } else {
+            if(EndPoint.y > 0) {
+                Vector3[] TriPoint = new Vector3[2];
+                TriPoint = VectorStuff.TriPoint(Vector3.zero, EndPoint);
+                TriPoint[0].y -= 3;
+                TriPoint[1].y += 3;
+                return BezierCurves.CalcBezier(t, Vector3.zero, TriPoint[0], TriPoint[1], EndPoint); // P0 and PN are control points
+            } else {
+                Vector3[] TriPoint = new Vector3[2];
+                TriPoint = VectorStuff.TriPoint(Vector3.zero, EndPoint);
+                TriPoint[0].y += 5;
+                TriPoint[1].y -= 5;
+                return BezierCurves.CalcBezier(t, Vector3.zero, TriPoint[0], TriPoint[1], EndPoint); // P0 and PN are control points
+            }
+        }
+    }
+
+    void FinishLine(Vector3 pos) {
+        active = false;
+        Wire.SetPositions(CalcArcArray(pos, true));
+        GameObject empty = new GameObject("Wire");
+        empty.transform.SetParent(this.transform);
+
+        Mesh mesh = new Mesh();
+        MeshRenderer meshRen = empty.AddComponent(typeof(MeshRenderer)) as MeshRenderer;
+        MeshFilter meshFil = empty.AddComponent(typeof(MeshFilter)) as MeshFilter;
+
+        Wire.BakeMesh(mesh, true);
+        meshFil.mesh = mesh;
+        meshRen.material.color = Color.black;
+
+        Destroy(Wire);
+    }
+}
