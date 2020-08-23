@@ -1,0 +1,44 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace MathmaticalFunctions {
+    public class BezierCurves {
+
+        //0 <= t <= 1
+
+        public static Vector3 CalcBezier(float t, Vector3 p0, Vector3 p1) {
+            return(t * (p0 - p1));
+        }
+
+        public static Vector3 CalcBezier(float t, Vector3 p0, Vector3 p1, Vector3 p2) {
+            float u = 1 - t;
+            return(u * (u * p0 + (t * p1)) + t * (u * p1 + (t * p2)));
+        }
+
+        public static Vector3 CalcBezier(float t, Vector3 p0, Vector3 p1, Vector3 p2, Vector3 p3) {
+            float u = 1 - t;
+            return(u * CalcBezier(t, p0, p1, p2) + t * CalcBezier(t, p1, p2, p3));
+        }
+    }
+    public class VectorStuff {
+        public static Vector3 MidPoint(Vector3 p0, Vector3 p1) {
+            float x = (p1.x - p0.x) / 2;
+            float y = (p1.y - p0.y) / 2;
+            return new Vector3(x, y, 0);
+        }
+
+        public static Vector3[] TriPoint(Vector3 p0, Vector3 p1) {
+            float x1 = (p1.x - p0.x) / 3;
+            float y1 = (p1.y - p0.y) / 3;
+            float x2 = x1 * 2;
+            float y2 = y1 * 2;
+
+            Vector3[] array = new Vector3[2];
+            array[0] = new Vector3(x1, y1, 0);
+            array[1] = new Vector3(x2, y2, 0);
+
+            return array;
+        }
+    }
+}
