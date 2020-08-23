@@ -1,0 +1,47 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class ClickDetection : MonoBehaviour {
+
+    int IPressed;
+
+    void Start() {
+        IPressed = 0;
+    }
+
+    void Update() {
+        if(Input.GetMouseButtonDown(0)) {
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+            if(Physics.Raycast(ray, out hit)) {
+                if(hit.collider != null && hit.transform.tag == "Clickable") {
+                    IPressed++;
+                    Debug.Log(IPressed);
+                }
+            }
+        }
+
+        if(Input.GetMouseButton(0)) {
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+            if(Physics.Raycast(ray, out hit)) {
+                if(hit.collider != null && hit.transform.tag == "Moveable") {
+                    hit.collider.transform.position = new Vector3(hit.point.x, hit.point.y, 0);
+                } else if(hit.collider != null && hit.transform.tag == "Wire/Start") {
+                    hit.transform.gameObject.GetComponent<InitLineRenderer>().InitWire(hit.transform.gameObject);
+                }
+            }
+        }
+    }
+}
+
+/*
+Ideas for Game:
+- Cloud Factory
+- 1 Click = 'White Cloud'
+- Distribution Center to choose when to get money, makes it more satisfying
+- Node That connects to two other click buttons and you click node and it makes two cloud
+- As you play you slowly destroy enviornment (Mars DLC Maybe?)
+- Do I want clouds physically inserted into dist center or just UI element?
+*/
